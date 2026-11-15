@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아침활동 5분 나눗셈 퀴즈 (초등 3학년)</title>
+  <!-- Tailwind CSS 로드 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 효과음 생성을 위한 Tone.js 로드 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <!-- 초등학생에게 친근하고 가독성 좋은 한글 웹폰트 (Noto Sans KR & Jua) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #e0f2fe 0%, #fef9c3 55%, #dcfce7 100%);
+      min-height: 100vh;
+    }
+    .font-jua {
+      font-family: 'Jua', sans-serif;
+    }
+    /* 숫자 입력창 기본 화살표 숨김 (깔끔한 UI) */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    @keyframes popScale {
+      0% { transform: scale(0.7); opacity: 0; }
+      70% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shake 0.35s ease-in-out;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center p-3 sm:p-6 text-slate-800">
+
+  <!-- 메인 앱 컨테이너 -->
+  <main class="w-full max-w-2xl bg-white/95 backdrop-blur rounded-3xl shadow-2xl border-4 border-sky-200 overflow-hidden">
+
+    <!-- 상단 헤더 -->
+    <header class="bg-gradient-to-r from-sky-500 to-blue-600 text-white px-5 py-4 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl sm:text-3xl" aria-hidden="true">✏️</span>
+        <div>
+          <h1 class="font-jua text-xl sm:text-2xl tracking-wide leading-tight">아침활동 5분 나눗셈 퀴즈</h1>
+          <p class="text-xs text-sky-100 font-medium">초등학교 3학년 맞춤형 수학 챌린지</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="sync-badge" class="hidden sm:inline-flex items-center gap-1 text-xs bg-white/20 px-2.5 py-1 rounded-full font-medium">
+          ● 준비 완료
+        </span>
+        <button id="btn-sound" type="button"
+          class="bg-white/20 hover:bg-white/30 active:scale-95 transition text-white text-xs sm:text-sm font-bold px-3 py-2 rounded-full border border-white/30 cursor-pointer">
+          🔊 소리 켜짐
+        </button>
+      </div>
+    </header>
+
+    <!-- 알림 메시지 배너 (alert 대체용) -->
+    <div id="inline-alert" class="hidden mx-5 mt-4 p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-700 font-bold text-sm flex items-center justify-between gap-2">
+      <span id="inline-alert-text">안내 메시지</span>
+      <button type="button" id="btn-close-alert" class="text-rose-500 hover:text-rose-800 px-2 py-0.5 rounded-lg font-black">✕</button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 1단계: 학생 로그인 및 이전 기록 확인 화면 -->
+    <!-- ========================================== -->
+    <section id="screen-start" class="p-5 sm:p-8 space-y-6">
+      <div class="text-center space-y-2">
+        <span class="inline-block bg-amber-100 text-amber-800 font-bold text-xs sm:text-sm px-3.5 py-1 rounded-full">
+          🌅 오늘도 즐거운 아침 수학!
+        </span>
+        <h2 class="font-jua text-2xl sm:text-3xl text-slate-900">출석 번호와 이름을 입력하세요</h2>
+        <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
+          총 <strong class="text-blue-600">5문제</strong>가 순서대로 출제되며, 나의 이전 기록에 맞춰<br class="hidden sm:inline" />
+          <strong class="text-sky-600">한 자리 수 ÷ 한 자리 수</strong>부터 <strong class="text-indigo-600">세 자리 수 ÷ 한 자리 수</strong>까지 성장해요!
+        </p>
+      </div>
+
+      <!-- 번호 & 이름 입력 폼 -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label for="input-number" class="block text-sm font-bold text-slate-700 mb-1.5">출석 번호</label>
+          <input id="input-number" type="number" min="1" max="50" inputmode="numeric" placeholder="예: 5"
+            class="w-full px-4 py-3.5 text-lg font-bold text-center rounded-2xl border-2 border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition" />
+        </div>
+        <div class="sm:col-span-2">
+          <label for="input-name" class="block text-sm font-bold text-slate-700 mb-1.5">학생 이름</label>
+          <input id="input-name" type="text" maxlength="12" placeholder="예: 김하늘"
+            class="w-full px-4 py-3.5 text-lg font-bold rounded-2xl border-2 border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition" />
+        </div>
+      </div>
+
+      <!-- 학생 이전 학습 기록 및 시작 난이도 안내 카드 -->
+      <div id="student-history-card" class="p-4 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-300 text-center transition-all">
+        <p class="text-sm text-slate-600">
+          번호와 이름을 입력하면 나의 <strong>이전 기록</strong>과 <strong>맞춤 난이도</strong>가 나타납니다!
+        </p>
+      </div>
+
+      <!-- 최근 참여한 친구 빠른 선택 (편의 기능) -->
+      <div id="quick-students-wrap" class="hidden space-y-2">
+        <p class="text-xs font-bold text-slate-500">⚡ 기록이 있는 친구 바로 선택하기:</p>
+        <div id="quick-students-list" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- 시작 버튼 -->
+      <button id="btn-start" type="button"
+        class="w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:translate-y-0.5 text-white font-jua text-xl sm:text-2xl shadow-lg shadow-blue-200 border-b-4 border-blue-800 transition cursor-pointer">
+        🚀 5분 나눗셈 퀴즈 시작하기!
+      </button>
+
+      <!-- 단계별 난이도 로드맵 안내 -->
+      <div class="bg-amber-50/90 border border-amber-200 rounded-2xl p-4">
+        <h3 class="text-xs sm:text-sm font-extrabold text-amber-900 mb-2">📈 5단계 나눗셈 실력 성장 로드맵</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs text-center">
+          <div class="bg-white p-2 rounded-xl border border-amber-200">
+            <span class="block font-black text-sky-600">Lv.1</span>
+            <span class="text-slate-600">한 자리÷한 자리<br />(나머지 없음)</span>
+          </div>
+          <div class="bg-white p-2 rounded-xl border border-amber-200">
+            <span class="block font-black text-sky-700">Lv.2</span>
+            <span class="text-slate-600">한 자리÷한 자리<br />(나머지 있음)</span>
+          </div>
+          <div class="bg-white p-2 rounded-xl border border-amber-200">
+            <span class="block font-black text-blue-600">Lv.3</span>
+            <span class="text-slate-600">두 자리÷한 자리<br />(나머지 없음)</span>
+          </div>
+          <div class="bg-white p-2 rounded-xl border border-amber-200">
+            <span class="block font-black text-indigo-600">Lv.4</span>
+            <span class="text-slate-600">두 자리÷한 자리<br />(나머지 있음)</span>
+          </div>
+          <div class="bg-white p-2 rounded-xl border border-amber-200">
+            <span class="block font-black text-purple-600">Lv.5</span>
+            <span class="text-slate-600">세 자리÷한 자리<br />(최고 심화!)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 2단계: 5문제 순차 퀴즈 풀이 화면 -->
+    <!-- ========================================== -->
+    <section id="screen-quiz" class="hidden p-5 sm:p-8 space-y-5">
+      <!-- 상단 상태 바: 학생 정보 / 5분 타이머 / 현재 점수 -->
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-100 p-3.5 rounded-2xl">
+        <div class="flex items-center gap-2 font-bold text-slate-700 text-sm sm:text-base">
+          <span class="bg-white px-2.5 py-1 rounded-xl shadow-xs" id="quiz-student-info">👤 1번 홍길동</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="quiz-timer" class="font-mono font-black text-base sm:text-lg text-slate-800 bg-white px-3 py-1 rounded-xl shadow-xs">
+            ⏱️ 05:00
+          </span>
+          <span id="quiz-score" class="font-black text-base sm:text-lg text-amber-700 bg-amber-100 px-3.5 py-1 rounded-xl border border-amber-300 transition-transform">
+            ⭐ 0점
+          </span>
+        </div>
+      </div>
+
+      <!-- 진행률 & 현재 문제 난이도 뱃지 -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-xs sm:text-sm font-bold">
+          <span id="quiz-progress-label" class="text-slate-700">문제 1 / 5</span>
+          <span id="quiz-level-badge" class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full">
+            Lv.1 한 자리 수 ÷ 한 자리 수
+          </span>
+        </div>
+        <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+          <div id="quiz-progress-bar" class="h-full bg-gradient-to-r from-sky-400 to-blue-600 rounded-full transition-all duration-300" style="width: 20%;"></div>
+        </div>
+      </div>
+
+      <!-- 나눗셈 문제 카드 -->
+      <div class="bg-gradient-to-b from-sky-50 to-white border-2 border-sky-200 rounded-3xl p-6 sm:p-8 text-center shadow-inner space-y-6">
+        <!-- 나눗셈 식 -->
+        <div class="flex items-center justify-center gap-3 sm:gap-5 flex-wrap">
+          <div id="num-dividend" class="bg-white border-3 border-blue-400 rounded-2xl px-6 py-4 text-4xl sm:text-5xl font-black text-slate-900 shadow-md min-w-[96px]">
+            8
+          </div>
+          <span class="text-3xl sm:text-4xl font-black text-blue-600">÷</span>
+          <div id="num-divisor" class="bg-white border-3 border-blue-400 rounded-2xl px-6 py-4 text-4xl sm:text-5xl font-black text-slate-900 shadow-md min-w-[80px]">
+            2
+          </div>
+          <span class="text-3xl sm:text-4xl font-black text-slate-400">=</span>
+        </div>
+
+        <!-- 몫 & 나머지 분리 입력 칸 -->
+        <div class="flex items-center justify-center gap-4 sm:gap-6 flex-wrap">
+          <!-- 몫 칸 -->
+          <div class="bg-sky-100/80 border-2 border-sky-300 rounded-2xl p-4 w-36 sm:w-40">
+            <label for="input-quotient" class="block font-jua text-lg text-sky-800 mb-1.5">몫</label>
+            <input id="input-quotient" type="number" min="0" max="999" inputmode="numeric" placeholder="?"
+              class="w-full py-2.5 px-3 text-center text-3xl font-black text-sky-950 bg-white rounded-xl border-2 border-sky-400 focus:border-sky-600 focus:ring-4 focus:ring-sky-200 outline-none" />
+          </div>
+
+          <span class="text-2xl font-black text-slate-400 hidden sm:inline">···</span>
+
+          <!-- 나머지 칸 -->
+          <div class="bg-orange-100/80 border-2 border-orange-300 rounded-2xl p-4 w-36 sm:w-40">
+            <label for="input-remainder" class="block font-jua text-lg text-orange-800 mb-1.5">나머지</label>
+            <input id="input-remainder" type="number" min="0" max="9" inputmode="numeric" placeholder="0"
+              class="w-full py-2.5 px-3 text-center text-3xl font-black text-orange-950 bg-white rounded-xl border-2 border-orange-400 focus:border-orange-600 focus:ring-4 focus:ring-orange-200 outline-none" />
+          </div>
+        </div>
+
+        <p class="text-xs sm:text-sm text-slate-500">
+          💡 나누어떨어지는 문제라면 나머지에 <strong class="text-orange-600">0</strong>을 적거나 비워두어도 괜찮아요!
+        </p>
+      </div>
+
+      <!-- 즉시 O/X 피드백 박스 -->
+      <div id="feedback-panel" class="hidden rounded-2xl p-4 sm:p-5 border-2 flex items-center gap-4 animate-pop" role="status" aria-live="polite">
+        <div id="feedback-ox" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-black text-5xl sm:text-6xl shrink-0 bg-white shadow-xs">
+          O
+        </div>
+        <div class="space-y-1 text-left">
+          <h3 id="feedback-heading" class="font-jua text-xl sm:text-2xl">정답이에요! (+22점)</h3>
+          <p id="feedback-subtext" class="text-sm sm:text-base font-medium leading-snug">8 ÷ 2 = 4</p>
+          <p id="feedback-check-formula" class="text-xs font-bold opacity-80"></p>
+        </div>
+      </div>
+
+      <!-- 제출 및 다음 문제 버튼 -->
+      <div>
+        <button id="btn-submit-answer" type="button"
+          class="w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:translate-y-0.5 text-white font-jua text-xl sm:text-2xl shadow-lg border-b-4 border-blue-800 transition cursor-pointer">
+          ✨ 정답 확인하기 (Enter)
+        </button>
+        <button id="btn-next-question" type="button"
+          class="hidden w-full py-4 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 active:translate-y-0.5 text-white font-jua text-xl sm:text-2xl shadow-lg border-b-4 border-amber-700 transition cursor-pointer">
+          다음 문제로 이동 → (Enter)
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 3단계: 최종 결과 및 역대 최고 점수 랭킹 보드 -->
+    <!-- ========================================== -->
+    <section id="screen-result" class="hidden p-5 sm:p-8 space-y-6">
+      <!-- 결과 요약 카드 -->
+      <div class="bg-gradient-to-br from-blue-50 via-sky-50 to-amber-50 border-2 border-sky-300 rounded-3xl p-5 sm:p-6 text-center space-y-4">
+        <h2 id="result-title" class="font-jua text-2xl sm:text-3xl text-blue-950">🎉 참 잘했어요!</h2>
+
+        <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+          <div class="bg-white rounded-2xl p-3 border border-sky-100 shadow-xs">
+            <span class="block text-xs font-bold text-slate-500 mb-1">맞힌 개수</span>
+            <span id="result-correct-count" class="text-xl sm:text-2xl font-black text-emerald-600">5 / 5</span>
+          </div>
+          <div class="bg-white rounded-2xl p-3 border border-sky-100 shadow-xs">
+            <span class="block text-xs font-bold text-slate-500 mb-1">최종 점수</span>
+            <span id="result-total-score" class="text-xl sm:text-2xl font-black text-blue-600">110점</span>
+          </div>
+          <div class="bg-white rounded-2xl p-3 border border-sky-100 shadow-xs">
+            <span class="block text-xs font-bold text-slate-500 mb-1">걸린 시간</span>
+            <span id="result-elapsed-time" class="text-xl sm:text-2xl font-black text-slate-800">1분 15초</span>
+          </div>
+        </div>
+
+        <div id="result-level-banner" class="bg-white/90 border border-blue-200 rounded-2xl px-4 py-3 text-sm font-bold text-blue-800">
+          🚀 다음 도전에는 Lv.2 난이도부터 시작해요!
+        </div>
+      </div>
+
+      <!-- 역대 최고 점수 랭킹 보드 -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-jua text-xl text-slate-900 flex items-center gap-2">
+            🏆 역대 최고 점수 랭킹 보드
+          </h3>
+          <span class="text-xs font-bold text-slate-500">동점일 경우 빠른 시간 우선</span>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border-2 border-slate-200">
+          <table class="w-full text-sm text-center border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-extrabold">
+              <tr>
+                <th class="py-3 px-2">순위</th>
+                <th class="py-3 px-2">번호</th>
+                <th class="py-3 px-2">이름</th>
+                <th class="py-3 px-2">최고 점수</th>
+                <th class="py-3 px-2">도달 단계</th>
+                <th class="py-3 px-2">시간</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody" class="divide-y divide-slate-200 bg-white">
+              <!-- JS 동적 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 하단 액션 버튼 -->
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button id="btn-play-again" type="button"
+          class="flex-1 py-4 px-5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:translate-y-0.5 text-white font-jua text-lg sm:text-xl shadow-md border-b-4 border-blue-800 transition cursor-pointer">
+          🔄 이어서 한 번 더 도전하기
+        </button>
+        <button id="btn-back-start" type="button"
+          class="py-4 px-4 rounded-2xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-sm sm:text-base border-2 border-sky-200 transition cursor-pointer">
+          🏠 내 기록 카드 확인
+        </button>
+        <button id="btn-switch-student" type="button"
+          class="py-4 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm sm:text-base border-2 border-slate-300 transition cursor-pointer">
+          👤 다른 친구 차례
+        </button>
+        <button id="btn-open-reset-modal" type="button"
+          class="py-4 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs sm:text-sm border-2 border-rose-200 transition cursor-pointer">
+          기록 초기화
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 기록 초기화 확인 모달 (confirm 대체용) -->
+  <div id="reset-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-slate-200 space-y-4 animate-pop">
+      <div class="text-center space-y-2">
+        <div class="text-4xl">⚠️</div>
+        <h3 class="font-jua text-2xl text-slate-900">전체 기록을 초기화할까요?</h3>
+        <p class="text-sm text-slate-600 leading-relaxed">
+          모든 학생의 이전 난이도 기록과 역대 최고 점수 랭킹 보드가 깨끗하게 지워집니다.
+        </p>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button id="btn-cancel-reset" type="button"
+          class="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold cursor-pointer">
+          취소
+        </button>
+        <button id="btn-confirm-reset" type="button"
+          class="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer">
+          네, 초기화합니다
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // =========================================================================
+    // 1. 공통 DOM 참조 및 전역 상태 초기화
+    // =========================================================================
+    const syncBadge = document.getElementById('sync-badge');
+    const btnSound = document.getElementById('btn-sound');
+    let isSoundOn = true;
+
+    btnSound.addEventListener('click', () => {
+      isSoundOn = !isSoundOn;
+      btnSound.textContent = isSoundOn ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
+    });
+
+    const screens = {
+      start: document.getElementById('screen-start'),
+      quiz: document.getElementById('screen-quiz'),
+      result: document.getElementById('screen-result')
+    };
+
+    const inlineAlert = document.getElementById('inline-alert');
+    const inlineAlertText = document.getElementById('inline-alert-text');
+    document.getElementById('btn-close-alert').addEventListener('click', () => {
+      inlineAlert.classList.add('hidden');
+    });
+
+    function showMessage(msg) {
+      inlineAlertText.textContent = msg;
+      inlineAlert.classList.remove('hidden', 'animate-shake');
+      void inlineAlert.offsetWidth;
+      inlineAlert.classList.add('animate-shake');
+    }
+
+    function hideMessage() {
+      inlineAlert.classList.add('hidden');
+    }
+
+    function switchScreen(target) {
+      hideMessage();
+      Object.values(screens).forEach((el) => el.classList.add('hidden'));
+      screens[target].classList.remove('hidden');
+    }
+
+    const inputNumber = document.getElementById('input-number');
+    const inputName = document.getElementById('input-name');
+    const studentHistoryCard = document.getElementById('student-history-card');
+    const quickStudentsWrap = document.getElementById('quick-students-wrap');
+    const quickStudentsList = document.getElementById('quick-students-list');
+
+    // =========================================================================
+    // 2. 데이터 저장소 설정 (클라우드 동기화 + 로컬 브라우저 저장소 폴백)
+    // =========================================================================
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    let useCloud = false;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'elem3-division-quiz';
+    const LOCAL_STORAGE_KEY = 'elem3_division_quiz_records_v1';
+
+    // 학생 기록 맵 (key: "번호_이름")
+    let studentRecordsMap = new Map();
+
+    function normalizeName(name) {
+      return String(name || '').trim().replace(/\s+/g, '');
+    }
+
+    function makeStudentKey(num, name) {
+      return `${Number(num)}_${normalizeName(name)}`;
+    }
+
+    function toSafeDocId(key) {
+      return 'stu_' + encodeURIComponent(key).replace(/%/g, '_');
+    }
+
+    function loadLocalRecords() {
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((rec) => {
+            if (rec && rec.number && rec.name) {
+              const key = makeStudentKey(rec.number, rec.name);
+              studentRecordsMap.set(key, { ...rec, key });
+            }
+          });
+        }
+      } catch (e) {
+        // localStorage 접근 제한 환경 무시
+      }
+    }
+
+    function saveLocalRecords() {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(Array.from(studentRecordsMap.values())));
+      } catch (e) {
+        // localStorage 접근 제한 환경 무시
+      }
+    }
+
+    async function initStorage() {
+      loadLocalRecords();
+
+      try {
+       
+const firebaseConfig = {
+  apiKey: "AIzaSyBkrTF2IPfLHFtf-O4ZgBqhY7clV19yj3U",
+  authDomain: "rd-graders-division.firebaseapp.com",
+  projectId: "rd-graders-division",
+  storageBucket: "rd-graders-division.firebasestorage.app",
+  messagingSenderId: "465138176382",
+  appId: "1:465138176382:web:dd80a4babcb29e6ec4232f",
+  measurementId: "G-92CG2CLDN9"
+};
+          const app = initializeApp(firebaseConfig);
+          auth = getAuth(app);
+          db = getFirestore(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            try {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } catch (tokenErr) {
+              await signInAnonymously(auth);
+            }
+          } else {
+            await signInAnonymously(auth);
+          }
+          currentUser = auth.currentUser;
+
+          if (currentUser && db) {
+            useCloud = true;
+            syncBadge.textContent = '● 실시간 기록 연동';
+            subscribeToRecords();
+            return;
+          }
+        
+      } catch (err) {
+        console.warn('클라우드 연결 대신 로컬 저장소 모드로 동작합니다:', err);
+      }
+
+      useCloud = false;
+      syncBadge.textContent = '● 로컬 기록 저장';
+      updateStudentHistoryCard();
+      renderQuickStudentChips();
+    }
+
+    function subscribeToRecords() {
+      if (!useCloud || !currentUser || !db) return;
+      const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'division_quiz_records');
+
+      onSnapshot(
+        colRef,
+        (snapshot) => {
+          const nextMap = new Map();
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data && data.number && data.name) {
+              const normalizedKey = makeStudentKey(data.number, data.name);
+              nextMap.set(normalizedKey, { ...data, key: normalizedKey });
+            }
+          });
+          studentRecordsMap = nextMap;
+          saveLocalRecords();
+          updateStudentHistoryCard();
+          renderQuickStudentChips();
+          if (!screens.result.classList.contains('hidden')) {
+            renderLeaderboard();
+          }
+        },
+        (error) => {
+          console.error('기록 구독 오류:', error);
+          showMessage('이전 기록을 불러오는 중 연결 오류가 발생했습니다.');
+        }
+      );
+    }
+
+    async function saveStudentRecord(record) {
+      const normalizedKey = makeStudentKey(record.number, record.name);
+      const cleanRecord = {
+        key: normalizedKey,
+        number: Number(record.number),
+        name: normalizeName(record.name),
+        skillLevel: Number(record.skillLevel || 1.0),
+        bestScore: Number(record.bestScore || 0),
+        lastScore: Number(record.lastScore || 0),
+        lastCorrectCount: Number(record.lastCorrectCount || 0),
+        bestTimeSec: Number(record.bestTimeSec || 999),
+        bestTimeStr: String(record.bestTimeStr || '-'),
+        maxLevelReached: Number(record.maxLevelReached || 1),
+        sessions: Number(record.sessions || 1),
+        updatedAt: Date.now()
+      };
+
+      studentRecordsMap.set(normalizedKey, cleanRecord);
+      saveLocalRecords();
+      updateStudentHistoryCard();
+      renderQuickStudentChips();
+
+      if (useCloud && currentUser && db) {
+        try {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'division_quiz_records', toSafeDocId(normalizedKey));
+          await setDoc(docRef, cleanRecord);
+        } catch (err) {
+          console.error('기록 저장 실패:', err);
+          showMessage('클라우드 기록 저장에 실패했습니다. 로컬 기록은 유지됩니다.');
+        }
+      }
+    }
+
+    async function clearAllRecords() {
+      const recordsToDelete = Array.from(studentRecordsMap.values());
+      studentRecordsMap.clear();
+      saveLocalRecords();
+      renderQuickStudentChips();
+      updateStudentHistoryCard();
+      renderLeaderboard();
+
+      if (useCloud && currentUser && db) {
+        for (const rec of recordsToDelete) {
+          try {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'division_quiz_records', toSafeDocId(rec.key));
+            await deleteDoc(docRef);
+          } catch (err) {
+            console.error('기록 삭제 실패:', err);
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // 3. 시작 화면 로직 (학생 이전 기록 조회 및 추천 선택)
+    // =========================================================================
+    function getLevelPlanSummary(skillLevel) {
+      const base = Math.max(1, Math.min(5, Math.round(skillLevel)));
+      const ranges = {
+        1: 'Lv.1 → Lv.3 (한 자리 수 나눗셈 기초부터 두 자리 수 입문)',
+        2: 'Lv.1 → Lv.4 (나머지 있는 한 자리 수 ~ 두 자리 수 나눗셈)',
+        3: 'Lv.2 → Lv.5 (두 자리 수 나눗셈 ~ 세 자리 수 도전)',
+        4: 'Lv.3 → Lv.5 (두 자리 수 심화 ~ 세 자리 수 나눗셈)',
+        5: 'Lv.3 → Lv.5 (세 자리 수 ÷ 한 자리 수 집중 마스터)'
+      };
+      return ranges[base] || ranges[1];
+    }
+
+    function updateStudentHistoryCard() {
+      const rawNum = inputNumber.value.trim();
+      const cleanName = normalizeName(inputName.value);
+      const parsedNum = rawNum ? Number(rawNum) : 0;
+
+      // 1) 번호와 이름이 모두 입력된 경우: 정확히 일치하는 학생 기록 조회
+      if (parsedNum > 0 && cleanName) {
+        const key = makeStudentKey(parsedNum, cleanName);
+        const record = studentRecordsMap.get(key);
+
+        if (record) {
+          const lv = Math.round(record.skillLevel);
+          const lastScoreInfo = typeof record.lastScore === 'number'
+            ? ` · 직전 ${record.lastScore}점(${record.lastCorrectCount ?? '-'}/5문제)`
+            : '';
+
+          studentHistoryCard.className = 'p-4 rounded-2xl bg-blue-50 border-2 border-blue-400 text-center transition-all space-y-1.5 shadow-xs';
+          studentHistoryCard.innerHTML = `
+            <p class="text-sm sm:text-base font-extrabold text-blue-950">
+              👋 반가워요, ${record.number}번 ${record.name} 학생! (총 ${record.sessions}회 참여)
+            </p>
+            <p class="text-xs sm:text-sm font-bold text-blue-800">
+              🏆 역대 최고: <span class="text-blue-600">${record.bestScore}점</span>${lastScoreInfo}
+            </p>
+            <p class="text-xs sm:text-sm text-indigo-700 font-semibold bg-white/80 rounded-xl py-1.5 px-3 border border-blue-200">
+              🎯 맞춤 출제 단계: <strong>Lv.${lv}</strong> — ${getLevelPlanSummary(record.skillLevel)}
+            </p>
+          `;
+        } else {
+          studentHistoryCard.className = 'p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-center transition-all space-y-1';
+          studentHistoryCard.innerHTML = `
+            <p class="text-sm sm:text-base font-extrabold text-emerald-900">
+              🌱 ${parsedNum}번 ${cleanName} 학생의 첫 도전을 응원해요!
+            </p>
+            <p class="text-xs sm:text-sm text-emerald-700 font-medium">
+              기초(<strong>Lv.1 한 자리 수 ÷ 한 자리 수</strong>)부터 차근차근 시작합니다.
+            </p>
+          `;
+        }
+        return;
+      }
+
+      // 2) 번호만 또는 이름만 입력된 경우: 일치하는 기존 기록 추천 버튼 표시
+      if (parsedNum > 0 || cleanName) {
+        const matches = Array.from(studentRecordsMap.values()).filter((rec) => {
+          if (parsedNum > 0 && !cleanName) return rec.number === parsedNum;
+          if (cleanName && parsedNum <= 0) return rec.name.includes(cleanName);
+          return false;
+        });
+
+        if (matches.length > 0) {
+          studentHistoryCard.className = 'p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-center transition-all space-y-2';
+          studentHistoryCard.innerHTML = `
+            <p class="text-xs sm:text-sm font-bold text-amber-900">
+              🔍 이전 학습 기록이 발견되었어요! 아래 버튼을 눌러 기록을 연결하세요:
+            </p>
+            <div id="history-match-buttons" class="flex flex-wrap justify-center gap-2"></div>
+          `;
+          const btnContainer = document.getElementById('history-match-buttons');
+          matches.forEach((m) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-3.5 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer';
+            btn.textContent = `${m.number}번 ${m.name} (최고 ${m.bestScore}점 · Lv.${Math.round(m.skillLevel)})`;
+            btn.addEventListener('click', () => {
+              inputNumber.value = m.number;
+              inputName.value = m.name;
+              updateStudentHistoryCard();
+            });
+            btnContainer.appendChild(btn);
+          });
+          return;
+        }
+      }
+
+      // 3) 기본 안내 상태
+      studentHistoryCard.className = 'p-4 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-300 text-center transition-all';
+      studentHistoryCard.innerHTML = `<p class="text-sm text-slate-600">번호와 이름을 입력하면 나의 <strong>이전 기록</strong>과 <strong>맞춤 난이도</strong>가 나타납니다!</p>`;
+    }
+
+    function renderQuickStudentChips() {
+      const records = Array.from(studentRecordsMap.values());
+      if (records.length === 0) {
+        quickStudentsWrap.classList.add('hidden');
+        return;
+      }
+
+      quickStudentsWrap.classList.remove('hidden');
+      quickStudentsList.innerHTML = '';
+
+      records
+        .sort((a, b) => a.number - b.number)
+        .slice(0, 12)
+        .forEach((rec) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'px-3 py-1.5 rounded-full bg-white hover:bg-sky-50 border border-slate-300 text-xs font-bold text-slate-700 shadow-2xs transition cursor-pointer';
+          btn.textContent = `${rec.number}번 ${rec.name} (Lv.${Math.round(rec.skillLevel)} · ${rec.bestScore}점)`;
+          btn.addEventListener('click', () => {
+            inputNumber.value = rec.number;
+            inputName.value = rec.name;
+            updateStudentHistoryCard();
+          });
+          quickStudentsList.appendChild(btn);
+        });
+    }
+
+    ['input', 'change', 'keyup', 'compositionend'].forEach((evt) => {
+      inputNumber.addEventListener(evt, updateStudentHistoryCard);
+      inputName.addEventListener(evt, updateStudentHistoryCard);
+    });
+
+    // =========================================================================
+    // 4. 효과음 및 적응형 나눗셈 문제 출제 알고리즘
+    // =========================================================================
+    async function playSoundEffect(type) {
+      if (!isSoundOn || typeof Tone === 'undefined') return;
+      try {
+        await Tone.start();
+        const synth = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.01, decay: 0.15, sustain: 0.05, release: 0.3 }
+        }).toDestination();
+        synth.volume.value = -8;
+
+        const now = Tone.now();
+        if (type === 'correct') {
+          synth.triggerAttackRelease('C5', '16n', now);
+          synth.triggerAttackRelease('E5', '16n', now + 0.09);
+          synth.triggerAttackRelease('G5', '8n', now + 0.18);
+        } else if (type === 'wrong') {
+          synth.triggerAttackRelease('E3', '8n', now);
+          synth.triggerAttackRelease('C3', '4n', now + 0.14);
+        } else if (type === 'finish') {
+          synth.triggerAttackRelease('C5', '16n', now);
+          synth.triggerAttackRelease('E5', '16n', now + 0.1);
+          synth.triggerAttackRelease('G5', '16n', now + 0.2);
+          synth.triggerAttackRelease('C6', '4n', now + 0.3);
+        }
+      } catch (e) {
+        // 오디오 정책 제한 시 무시
+      }
+    }
+
+    const LEVEL_LABELS = {
+      1: 'Lv.1 한 자리 수 ÷ 한 자리 수 (나머지 없음)',
+      2: 'Lv.2 한 자리 수 ÷ 한 자리 수 (나머지 있음)',
+      3: 'Lv.3 두 자리 수 ÷ 한 자리 수 (나머지 없음)',
+      4: 'Lv.4 두 자리 수 ÷ 한 자리 수 (나머지 있음)',
+      5: 'Lv.5 세 자리 수 ÷ 한 자리 수 (심화 도전)'
+    };
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateSingleProblem(level, usedEquations) {
+      for (let attempt = 0; attempt < 120; attempt++) {
+        let dividend = 0;
+        let divisor = 2;
+
+        if (level === 1) {
+          const validPairs = [
+            [4, 2], [6, 2], [6, 3], [8, 2], [8, 4], [9, 3], [6, 6], [8, 8], [9, 9], [4, 4]
+          ];
+          const chosen = validPairs[randomInt(0, validPairs.length - 1)];
+          dividend = chosen[0];
+          divisor = chosen[1];
+        } else if (level === 2) {
+          divisor = randomInt(2, 6);
+          dividend = randomInt(divisor + 1, 9);
+          if (dividend % divisor === 0) continue;
+        } else if (level === 3) {
+          divisor = randomInt(2, 9);
+          const minQ = Math.ceil(12 / divisor);
+          const maxQ = Math.floor(96 / divisor);
+          const q = randomInt(minQ, maxQ);
+          dividend = divisor * q;
+          if (dividend < 10 || dividend > 99) continue;
+        } else if (level === 4) {
+          divisor = randomInt(2, 9);
+          dividend = randomInt(13, 98);
+          if (dividend % divisor === 0) continue;
+        } else {
+          divisor = randomInt(2, 9);
+          dividend = randomInt(105, 495);
+        }
+
+        const eqKey = `${dividend}/${divisor}`;
+        if (!usedEquations.has(eqKey)) {
+          usedEquations.add(eqKey);
+          return {
+            level,
+            dividend,
+            divisor,
+            quotient: Math.floor(dividend / divisor),
+            remainder: dividend % divisor
+          };
+        }
+      }
+
+      return {
+        level,
+        dividend: 135,
+        divisor: 4,
+        quotient: 33,
+        remainder: 3
+      };
+    }
+
+    function buildAdaptiveProblemSet(skillLevel) {
+      const base = Math.max(1, Math.min(5, Math.round(skillLevel)));
+      let levelSequence = [1, 1, 2, 2, 3];
+
+      if (base === 1) {
+        levelSequence = [1, 1, 2, 2, 3];
+      } else if (base === 2) {
+        levelSequence = [1, 2, 2, 3, 4];
+      } else if (base === 3) {
+        levelSequence = [2, 3, 3, 4, 5];
+      } else if (base === 4) {
+        levelSequence = [3, 4, 4, 5, 5];
+      } else {
+        levelSequence = [3, 4, 5, 5, 5];
+      }
+
+      const used = new Set();
+      return levelSequence.map((lvl) => generateSingleProblem(lvl, used));
+    }
+
+    // =========================================================================
+    // 5. 퀴즈 진행 로직 (5문제 순차, 즉시 O/X 피드백, 점수 & 5분 타이머)
+    // =========================================================================
+    let activeStudent = null;
+    let quizProblems = [];
+    let currentIdx = 0;
+    let currentScore = 0;
+    let correctCount = 0;
+    let phase = 'IDLE';
+    let timerId = null;
+    let secondsLeft = 300;
+    let quizStartedAt = 0;
+
+    const quizStudentInfo = document.getElementById('quiz-student-info');
+    const quizTimer = document.getElementById('quiz-timer');
+    const quizScore = document.getElementById('quiz-score');
+    const quizProgressLabel = document.getElementById('quiz-progress-label');
+    const quizLevelBadge = document.getElementById('quiz-level-badge');
+    const quizProgressBar = document.getElementById('quiz-progress-bar');
+
+    const numDividend = document.getElementById('num-dividend');
+    const numDivisor = document.getElementById('num-divisor');
+    const inputQuotient = document.getElementById('input-quotient');
+    const inputRemainder = document.getElementById('input-remainder');
+
+    const feedbackPanel = document.getElementById('feedback-panel');
+    const feedbackOx = document.getElementById('feedback-ox');
+    const feedbackHeading = document.getElementById('feedback-heading');
+    const feedbackSubtext = document.getElementById('feedback-subtext');
+    const feedbackCheckFormula = document.getElementById('feedback-check-formula');
+
+    const btnSubmitAnswer = document.getElementById('btn-submit-answer');
+    const btnNextQuestion = document.getElementById('btn-next-question');
+
+    function startQuizSession() {
+      const numVal = inputNumber.value.trim();
+      const nameVal = normalizeName(inputName.value);
+
+      if (!numVal || Number(numVal) < 1 || Number(numVal) > 50) {
+        showMessage('출석 번호(1~50)를 정확히 입력해 주세요!');
+        inputNumber.focus();
+        return;
+      }
+      if (!nameVal) {
+        showMessage('학생 이름을 입력해 주세요!');
+        inputName.focus();
+        return;
+      }
+
+      const key = makeStudentKey(numVal, nameVal);
+      const prev = studentRecordsMap.get(key);
+
+      activeStudent = prev
+        ? { ...prev }
+        : {
+            key,
+            number: Number(numVal),
+            name: nameVal,
+            skillLevel: 1.0,
+            bestScore: 0,
+            bestTimeSec: 999,
+            bestTimeStr: '-',
+            maxLevelReached: 1,
+            sessions: 0
+          };
+
+      quizProblems = buildAdaptiveProblemSet(activeStudent.skillLevel);
+      currentIdx = 0;
+      currentScore = 0;
+      correctCount = 0;
+
+      quizStudentInfo.textContent = `👤 ${activeStudent.number}번 ${activeStudent.name}`;
+      quizScore.textContent = '⭐ 0점';
+
+      switchScreen('quiz');
+      startCountdownTimer();
+      loadCurrentProblem();
+    }
+
+    document.getElementById('btn-start').addEventListener('click', startQuizSession);
+
+    function startCountdownTimer() {
+      clearInterval(timerId);
+      secondsLeft = 300;
+      quizStartedAt = Date.now();
+      updateTimerUI();
+
+      timerId = setInterval(() => {
+        secondsLeft -= 1;
+        updateTimerUI();
+        if (secondsLeft <= 0) {
+          clearInterval(timerId);
+          completeQuizSession(true);
+        }
+      }, 1000);
+    }
+
+    function updateTimerUI() {
+      const s = Math.max(0, secondsLeft);
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      quizTimer.textContent = `⏱️ ${mm}:${ss}`;
+
+      if (s <= 30) {
+        quizTimer.classList.add('text-rose-600', 'bg-rose-100');
+      } else {
+        quizTimer.classList.remove('text-rose-600', 'bg-rose-100');
+      }
+    }
+
+    function loadCurrentProblem() {
+      hideMessage();
+      phase = 'ANSWERING';
+      const prob = quizProblems[currentIdx];
+
+      quizProgressLabel.textContent = `문제 ${currentIdx + 1} / ${quizProblems.length}`;
+      quizLevelBadge.textContent = LEVEL_LABELS[prob.level];
+      quizProgressBar.style.width = `${((currentIdx + 1) / quizProblems.length) * 100}%`;
+
+      numDividend.textContent = prob.dividend;
+      numDivisor.textContent = prob.divisor;
+
+      inputQuotient.value = '';
+      inputRemainder.value = '';
+      inputQuotient.disabled = false;
+      inputRemainder.disabled = false;
+
+      feedbackPanel.classList.add('hidden');
+      btnSubmitAnswer.classList.remove('hidden');
+      btnNextQuestion.classList.add('hidden');
+
+      setTimeout(() => inputQuotient.focus(), 40);
+    }
+
+    function evaluateCurrentAnswer() {
+      if (phase !== 'ANSWERING') return;
+
+      const qStr = inputQuotient.value.trim();
+      const rStr = inputRemainder.value.trim();
+
+      if (qStr === '') {
+        showMessage('몫 칸에 정답 숫자를 입력해 주세요!');
+        inputQuotient.focus();
+        return;
+      }
+
+      hideMessage();
+      const userQuotient = Number(qStr);
+      const userRemainder = rStr === '' ? 0 : Number(rStr);
+      const prob = quizProblems[currentIdx];
+
+      phase = 'REVIEWING';
+      inputQuotient.disabled = true;
+      inputRemainder.disabled = true;
+
+      const isCorrect = userQuotient === prob.quotient && userRemainder === prob.remainder;
+
+      // 검산식 안내 텍스트 생성
+      const checkFormula = prob.remainder === 0
+        ? `💡 확인하기: ${prob.divisor} × ${prob.quotient} = ${prob.dividend}`
+        : `💡 확인하기: ${prob.divisor} × ${prob.quotient} + ${prob.remainder} = ${prob.dividend}`;
+
+      feedbackPanel.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-400', 'text-emerald-950', 'bg-rose-50', 'border-rose-400', 'text-rose-950');
+      feedbackOx.classList.remove('text-emerald-600', 'text-rose-600');
+
+      if (isCorrect) {
+        // 기본 20점 + 문제 난이도 보너스(레벨 × 2점)
+        const pointsEarned = 20 + prob.level * 2;
+        currentScore += pointsEarned;
+        correctCount += 1;
+
+        quizScore.textContent = `⭐ ${currentScore}점`;
+        quizScore.classList.add('scale-110');
+        setTimeout(() => quizScore.classList.remove('scale-110'), 220);
+
+        feedbackPanel.classList.add('bg-emerald-50', 'border-emerald-400', 'text-emerald-950');
+        feedbackOx.classList.add('text-emerald-600');
+        feedbackOx.textContent = 'O';
+        feedbackHeading.textContent = `정답이에요! (+${pointsEarned}점 획득)`;
+        feedbackSubtext.textContent = prob.remainder === 0
+          ? `${prob.dividend} ÷ ${prob.divisor} = 몫 ${prob.quotient} (나누어떨어집니다)`
+          : `${prob.dividend} ÷ ${prob.divisor} = 몫 ${prob.quotient}, 나머지 ${prob.remainder}`;
+        feedbackCheckFormula.textContent = checkFormula;
+
+        playSoundEffect('correct');
+      } else {
+        feedbackPanel.classList.add('bg-rose-50', 'border-rose-400', 'text-rose-950');
+        feedbackOx.classList.add('text-rose-600');
+        feedbackOx.textContent = 'X';
+        feedbackHeading.textContent = '아쉬워요! 다시 한번 살펴볼까요?';
+
+        let extraAdvice = '';
+        if (userRemainder >= prob.divisor) {
+          extraAdvice = ` (주의: 나머지는 나누는 수 ${prob.divisor}보다 항상 작아야 해요!)`;
+        }
+
+        const correctAnswerStr = prob.remainder === 0
+          ? `몫 ${prob.quotient}, 나머지 0`
+          : `몫 ${prob.quotient}, 나머지 ${prob.remainder}`;
+        feedbackSubtext.textContent = `정답은 [ ${correctAnswerStr} ] 입니다.${extraAdvice}`;
+        feedbackCheckFormula.textContent = checkFormula;
+
+        playSoundEffect('wrong');
+      }
+
+      btnSubmitAnswer.classList.add('hidden');
+      btnNextQuestion.classList.remove('hidden');
+      btnNextQuestion.textContent = currentIdx < quizProblems.length - 1
+        ? '다음 문제로 이동 → (Enter)'
+        : '최종 점수와 랭킹 보드 보기 → (Enter)';
+    }
+
+    btnSubmitAnswer.addEventListener('click', evaluateCurrentAnswer);
+
+    btnNextQuestion.addEventListener('click', () => {
+      if (currentIdx < quizProblems.length - 1) {
+        currentIdx += 1;
+        loadCurrentProblem();
+      } else {
+        completeQuizSession(false);
+      }
+    });
+
+    // 엔터키 단축키 지원
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (!document.getElementById('reset-modal').classList.contains('hidden')) return;
+
+      if (!screens.start.classList.contains('hidden')) {
+        if (document.activeElement === inputNumber) {
+          inputName.focus();
+        } else {
+          startQuizSession();
+        }
+      } else if (!screens.quiz.classList.contains('hidden')) {
+        if (phase === 'ANSWERING') {
+          if (document.activeElement === inputQuotient) {
+            inputRemainder.focus();
+          } else {
+            evaluateCurrentAnswer();
+          }
+        } else if (phase === 'REVIEWING') {
+          btnNextQuestion.click();
+        }
+      }
+    });
+
+    // =========================================================================
+    // 7. 퀴즈 종료, 실력 레벨 업데이트 및 역대 최고 점수 랭킹 보드
+    // =========================================================================
+    const resultTitle = document.getElementById('result-title');
+    const resultCorrectCount = document.getElementById('result-correct-count');
+    const resultTotalScore = document.getElementById('result-total-score');
+    const resultElapsedTime = document.getElementById('result-elapsed-time');
+    const resultLevelBanner = document.getElementById('result-level-banner');
+    const leaderboardTbody = document.getElementById('leaderboard-tbody');
+
+    function formatKoreanDuration(totalSec) {
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return m > 0 ? `${m}분 ${s}초` : `${s}초`;
+    }
+
+    async function completeQuizSession(isTimeout) {
+      clearInterval(timerId);
+      phase = 'IDLE';
+      playSoundEffect('finish');
+
+      const elapsedSec = Math.max(1, Math.min(300, Math.round((Date.now() - quizStartedAt) / 1000)));
+      const elapsedStr = formatKoreanDuration(elapsedSec);
+
+      // 학생 실력 레벨 업데이트 (4문제 이상 정답 시 다음 단계 승급)
+      const previousRoundedLv = Math.round(activeStudent.skillLevel);
+      let levelDelta = 0;
+      if (correctCount >= 4) {
+        levelDelta = 1.0;
+      } else if (correctCount === 3) {
+        levelDelta = 0.4;
+      } else {
+        levelDelta = -0.2;
+      }
+
+      const nextSkillLevel = Number(Math.max(1.0, Math.min(5.0, activeStudent.skillLevel + levelDelta)).toFixed(1));
+      const nextRoundedLv = Math.round(nextSkillLevel);
+
+      activeStudent.sessions += 1;
+      activeStudent.skillLevel = nextSkillLevel;
+      activeStudent.lastScore = currentScore;
+      activeStudent.lastCorrectCount = correctCount;
+      activeStudent.maxLevelReached = Math.max(activeStudent.maxLevelReached || 1, nextRoundedLv);
+
+      // 역대 최고 점수 갱신 (점수가 높거나, 동점이고 시간이 더 빠른 경우)
+      if (
+        currentScore > activeStudent.bestScore ||
+        (currentScore === activeStudent.bestScore && elapsedSec < activeStudent.bestTimeSec)
+      ) {
+        activeStudent.bestScore = currentScore;
+        activeStudent.bestTimeSec = elapsedSec;
+        activeStudent.bestTimeStr = elapsedStr;
+      }
+
+      await saveStudentRecord(activeStudent);
+
+      // 결과 화면 텍스트 반영
+      resultTitle.textContent = isTimeout
+        ? `⏰ 5분 종료! ${activeStudent.number}번 ${activeStudent.name} 학생, 수고했어요!`
+        : `🎉 ${activeStudent.number}번 ${activeStudent.name} 학생, 참 잘했어요!`;
+
+      resultCorrectCount.textContent = `${correctCount} / ${quizProblems.length}문제`;
+      resultTotalScore.textContent = `${currentScore}점`;
+      resultElapsedTime.textContent = elapsedStr;
+
+      if (nextRoundedLv > previousRoundedLv) {
+        resultLevelBanner.textContent = `🚀 실력 승급! 다음 도전에는 난이도가 올라가서 [Lv.${nextRoundedLv}] 단계부터 시작해요!`;
+      } else if (nextRoundedLv === 5) {
+        resultLevelBanner.textContent = `👑 최고 난이도 [Lv.5 세 자리 수 ÷ 한 자리 수] 마스터에 도전하고 있어요!`;
+      } else {
+        resultLevelBanner.textContent = `💪 현재 나의 맞춤 단계는 [Lv.${nextRoundedLv}] 입니다. 한 번 더 도전해 볼까요?`;
+      }
+
+      renderLeaderboard();
+      switchScreen('result');
+    }
+
+    function renderLeaderboard() {
+      const allRecords = Array.from(studentRecordsMap.values());
+      // 점수 내림차순 -> 걸린 시간 오름차순 정렬
+      allRecords.sort((a, b) => {
+        if (b.bestScore !== a.bestScore) return b.bestScore - a.bestScore;
+        return (a.bestTimeSec || 999) - (b.bestTimeSec || 999);
+      });
+
+      leaderboardTbody.innerHTML = '';
+
+      if (allRecords.length === 0) {
+        leaderboardTbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-6 text-slate-400 font-medium">아직 등록된 점수가 없습니다. 첫 번째 주인공이 되어보세요!</td>
+          </tr>
+        `;
+        return;
+      }
+
+      allRecords.slice(0, 10).forEach((rec, index) => {
+        const tr = document.createElement('tr');
+        const isCurrent = activeStudent && rec.key === activeStudent.key;
+        if (isCurrent) {
+          tr.className = 'bg-amber-50/90 font-extrabold text-slate-900';
+        }
+
+        let rankBadge = `${index + 1}위`;
+        if (index === 0) rankBadge = '🥇 1위';
+        else if (index === 1) rankBadge = '🥈 2위';
+        else if (index === 2) rankBadge = '🥉 3위';
+
+        tr.innerHTML = `
+          <td class="py-3 px-2">${rankBadge}</td>
+          <td class="py-3 px-2">${rec.number}번</td>
+          <td class="py-3 px-2">${rec.name} ${isCurrent ? '<span class="text-xs text-blue-600">(나)</span>' : ''}</td>
+          <td class="py-3 px-2 text-blue-700 font-black">${rec.bestScore}점</td>
+          <td class="py-3 px-2"><span class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-xs font-bold">Lv.${rec.maxLevelReached || Math.round(rec.skillLevel)}</span></td>
+          <td class="py-3 px-2 text-slate-600">${rec.bestTimeStr || '-'}</td>
+        `;
+        leaderboardTbody.appendChild(tr);
+      });
+    }
+
+    // 결과 화면 하단 버튼 이벤트
+    document.getElementById('btn-play-again').addEventListener('click', () => {
+      // 동일 학생으로 바로 상승된 난이도 퀴즈 재시작
+      startQuizSession();
+    });
+
+    document.getElementById('btn-back-start').addEventListener('click', () => {
+      // 현재 학생 정보를 유지한 채 시작 화면으로 돌아가 갱신된 기록 카드 확인
+      if (activeStudent) {
+        inputNumber.value = activeStudent.number;
+        inputName.value = activeStudent.name;
+      }
+      updateStudentHistoryCard();
+      switchScreen('start');
+    });
+
+    document.getElementById('btn-switch-student').addEventListener('click', () => {
+      inputNumber.value = '';
+      inputName.value = '';
+      updateStudentHistoryCard();
+      switchScreen('start');
+      setTimeout(() => inputNumber.focus(), 50);
+    });
+
+    // 기록 초기화 모달 제어
+    const resetModal = document.getElementById('reset-modal');
+    document.getElementById('btn-open-reset-modal').addEventListener('click', () => {
+      resetModal.classList.remove('hidden');
+    });
+    document.getElementById('btn-cancel-reset').addEventListener('click', () => {
+      resetModal.classList.add('hidden');
+    });
+    document.getElementById('btn-confirm-reset').addEventListener('click', async () => {
+      resetModal.classList.add('hidden');
+      await clearAllRecords();
+    });
+
+    // 앱 초기화 실행
+    initStorage();
+  </script>
+</body>
+</html>
